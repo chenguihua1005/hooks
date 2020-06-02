@@ -8,17 +8,14 @@ export interface HookFactoryOption {
 }
 
 export interface WorkOption {
-  onResult?: Function;
-  onDone?: Function;
-  onError?: Function;
-  resultReturns?: boolean;
-  rethrowIfPossible?: boolean;
+  onError: any;
+  onDone: any;
 }
 
-export abstract class HookFactory {
+export class HookFactory {
   config: any;
   options?: HookFactoryOption;
-  private _args: Array<any> = [];
+  protected _args: Array<any> = [];
 
   constructor(config?: any) {
     this.config = config;
@@ -32,36 +29,33 @@ export abstract class HookFactory {
       this._args = args;
       switch (this.options?.type) {
         case 'sync': {
-          fn = this.composeWithInterceptors({
-            onResult: (result: any) => result,
-            onError: (err: Error) => {
-              throw err;
-            },
-            onDone: () => {},
-          });
+          fn = this.execute();
           break;
         }
-        case 'async': {
-          const callback = this._args[args.length - 1];
-          this._args = this._args.slice(0, args.length - 1); // remove callback from callAsync
-          fn = this.composeWithInterceptors({
-            onResult: (result: any) => callback(null, result),
-            onDone: callback,
-            onError: callback,
-          });
-          break;
-        }
-        case 'promise': {
-          fn = () =>
-            new Promise((resolve, reject) => {
-              this.composeWithInterceptors({
-                onResult: resolve,
-                onDone: resolve,
-                onError: reject,
-              })();
-            });
-          break;
-        }
+        // case 'async': {
+        //   const callback = this._args[args.length - 1];
+        //   this._args = this._args.slice(0, args.length - 1); // remove callback from callAsync
+        //   fn = this.composeWithInterceptors({
+        //     onResult: (result: any) => {
+        //       console.log({ result });
+        //       callback(null, result);
+        //     },
+        //     onDone: callback,
+        //     onError: callback,
+        //   });
+        //   break;
+        // }
+        // case 'promise': {
+        //   fn = () =>
+        //     new Promise((resolve, reject) => {
+        //       this.composeWithInterceptors({
+        //         onResult: resolve,
+        //         onDone: resolve,
+        //         onError: reject,
+        //       })();
+        //     });
+        //   break;
+        // }
       }
       return fn();
     };
@@ -112,26 +106,37 @@ export abstract class HookFactory {
     return () => this.execute(options);
   }
 
-  callTapSeries({
+  callTapsSeries({
     onError,
     onDone,
     onResult,
+    resultReturns,
     ...restOptions
-  }: Required<WorkOption>) {
+  }: WorkOption) {
     const { options: { taps = [] } = {} } = this;
     if (taps.length === 0) {
-      onDone(this._args);
-      return;
+      return onDone && onDone(this._args);
     }
     for (let i = 0; i < taps.length; i++) {
-      this.callTap(i, { ...restOptions, onResult, onDone, onError });
+      this.callTap(i, {
+        ...restOptions,
+        resultReturns,
+        onDone: !onResult ? onDone : undefined,
+        onError: (error: Error) => onError && onError(i, error),
+        onResult:
+          onResult &&
+          ((result: any) => {
+            return onResult(i, result, onDone);
+          }),
+      });
+    }
+    if (resultReturns) {
+      console.log({ resultReturns });
+      return resultReturns();
     }
   }
 
-  callTap(
-    tapIndex: number,
-    { onError, onResult, onDone }: Required<WorkOption>
-  ) {
+  callTap(tapIndex: number, { onError, onResult, onDone }: WorkOption) {
     const { options: { taps = [] } = {} } = this;
 
     const tap = taps[tapIndex];
@@ -141,29 +146,29 @@ export abstract class HookFactory {
         let result;
         try {
           result = tap.fn(...this._args);
-          onResult(result);
-          onDone();
+          onResult && onResult(result);
+          onDone && onDone();
         } catch (e) {
-          onError(e);
+          onError && onError(e);
         }
         break;
       }
       case 'promise': {
         Promise.resolve(tap.fn(...this._args))
           .then(value => {
-            onResult(value);
-            onDone();
+            onResult && onResult(value);
+            onDone && onDone();
           })
-          .catch(e => onError(e));
+          .catch(e => onError && onError(e));
         break;
       }
       case 'async': {
         Promise.resolve(tap.fn(...this._args))
           .then(value => {
-            onResult(value);
-            onDone();
+            onResult && onResult(value);
+            onDone && onDone();
           })
-          .catch(e => onError(e));
+          .catch(e => onError && onError(e));
         break;
       }
     }

@@ -3,12 +3,11 @@ import { HookFactory, HookFactoryOption, WorkOption } from './HookFactory';
 
 class SyncHookFactory extends HookFactory {
   execute({ onError, onDone, rethrowIfPossible }: Required<WorkOption>) {
-    return this.callTapSeries({
+    return this.callTapsSeries({
       onError: (_: number, err: Error) => onError(err),
       onDone,
       rethrowIfPossible,
-      onResult: () => {},
-      resultReturns: false,
+      resultReturns: null,
     });
   }
 }

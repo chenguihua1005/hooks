@@ -112,7 +112,7 @@ export abstract class HookFactory {
     return () => this.execute(options);
   }
 
-  doWorkSeries({
+  callTapSeries({
     onError,
     onDone,
     onResult,
@@ -123,13 +123,12 @@ export abstract class HookFactory {
       onDone(this._args);
       return;
     }
-
-    for (let i = taps.length - 1; i >= 0; i--) {
-      this.doWork(i, { ...restOptions, onResult, onDone, onError });
+    for (let i = 0; i < taps.length; i++) {
+      this.callTap(i, { ...restOptions, onResult, onDone, onError });
     }
   }
 
-  doWork(
+  callTap(
     tapIndex: number,
     { onError, onResult, onDone }: Required<WorkOption>
   ) {

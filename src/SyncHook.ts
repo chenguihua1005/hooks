@@ -3,7 +3,7 @@ import { HookFactory, HookFactoryOption, WorkOption } from './HookFactory';
 
 class SyncHookFactory extends HookFactory {
   execute({ onError, onDone, rethrowIfPossible }: Required<WorkOption>) {
-    return this.doWorkSeries({
+    return this.callTapSeries({
       onError: (_: number, err: Error) => onError(err),
       onDone,
       rethrowIfPossible,

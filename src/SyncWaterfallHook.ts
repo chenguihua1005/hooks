@@ -2,17 +2,20 @@ import { HookFactoryOption, HookFactory, WorkOption } from './HookFactory';
 import { Hook } from './Hook';
 
 class SyncWaterfallHookCodeFactory extends HookFactory {
-  execute({ onError, onResult, rethrowIfPossible }: Required<WorkOption>) {
+  execute({ onError, onResult }: Required<WorkOption>) {
     return this.callTapsSeries({
       onError: (_: number, err: Error) => onError(err),
-      onResult: (_: number, result: any, done: Function) => {
-        console.log({ result });
-        this._args[0] = result;
-        done();
+      onDone: () => {
+        const result = this._args[0];
+        onResult(result);
+        return result;
       },
-      onDone: () => onResult(this._args[0]),
-      resultReturns: () => this._args[0],
-      rethrowIfPossible,
+      onResult: (_: any, result: any) => {
+        // Somehow there is a special case when result is undefined, do not override with undefined
+        if (result !== undefined) {
+          this._args[0] = result;
+        }
+      },
     });
   }
 }

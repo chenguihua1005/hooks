@@ -33,9 +33,13 @@
   "author": "Zheng Yu Tay",
   "module": "dist/isomorphic-tapable.esm.js",
   "devDependencies": {
+    "@types/async": "^3.2.3",
     "husky": "^4.2.5",
     "tsdx": "^0.13.2",
     "tslib": "^2.0.0",
     "typescript": "^3.9.3"
+  },
+  "dependencies": {
+    "async": "^3.2.0"
   }
 }

@@ -1,5 +1,5 @@
 import { AsArray, Tap, TapOption, HookInterceptor, CallType } from './types';
-import { HookFactoryOption } from 'HookFactory';
+import { HookFactoryOption } from './HookFactory';
 
 export class Hook<T, R> {
   name: string | undefined;
@@ -59,11 +59,31 @@ export class Hook<T, R> {
   }
 
   private _createCall(type: CallType) {
-    return this.compile({
+    const fn = this.compile({
       taps: this.taps,
       interceptors: this.interceptors,
       type: type,
     });
+    switch (type) {
+      case 'sync': {
+        return fn;
+      }
+      case 'async': {
+        return fn;
+      }
+      case 'promise': {
+        return (...args: any[]) =>
+          new Promise((resolve, reject) => {
+            fn(...args, (err: unknown, results: unknown) => {
+              if (err) {
+                reject(err);
+              } else {
+                resolve(results);
+              }
+            });
+          });
+      }
+    }
   }
 
   call(...args: any[]) {

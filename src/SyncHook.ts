@@ -1,21 +1,37 @@
 import { Hook } from './Hook';
-import { HookFactory, HookFactoryOption, WorkOption } from './HookFactory';
+import { HookFactory, HookFactoryOption } from './HookFactory';
+import async from 'async';
 
 class SyncHookFactory extends HookFactory {
-  execute({ onError, onDone }: WorkOption) {
-    return this.callTapsSeries({
-      onError: (_: number, err: Error) => onError(err),
-      onDone,
-      onResult: () => {},
-    });
-  }
+  execute = (...arg: any[]) => {
+    const { callback, args } = this.getArgsAndCallback(arg);
+    async.allSeries(
+      this.getTapFunctions(),
+      (fn, callback) => {
+        try {
+          fn(...args);
+          callback(null, true);
+        } catch (e) {
+          callback(e);
+        }
+      },
+      (error, results) => {
+        if (typeof callback === 'function') {
+          if (error) {
+            callback(error);
+          }
+          if (results) {
+            callback(null, results);
+          }
+        }
+      }
+    );
+  };
 }
-
-const factory = new SyncHookFactory();
 
 export class SyncHook<T = any, R = any> extends Hook<T, R> {
   compile(options: HookFactoryOption) {
-    return factory.create(options);
+    return new SyncHookFactory(options).execute;
   }
 
   tapAsync() {

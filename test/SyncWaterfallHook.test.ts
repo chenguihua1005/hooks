@@ -1,7 +1,3 @@
-/*
-	MIT License http://www.opensource.org/licenses/mit-license.php
-	Author Tobias Koppers @sokra
-*/
 import { SyncWaterfallHook } from '../src/SyncWaterfallHook';
 import { Tap } from '../src/types';
 
@@ -92,9 +88,9 @@ describe('SyncWaterfallHook', () => {
     const h1 = new SyncWaterfallHook();
     const h2 = new SyncWaterfallHook();
 
-    expect(h1.call(1)).toEqual(1);
+    expect(h1.call(1)).toEqual(undefined);
 
-    h1.tap('A', () => undefined);
+    h1.tap('A', (count: number) => count);
     h2.tap('A', (a: any, b: any) => [a, b]);
 
     expect(h1.call(1)).toEqual(1);

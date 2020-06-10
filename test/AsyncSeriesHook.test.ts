@@ -15,7 +15,7 @@ describe('AsyncSeriesHook', () => {
     expect(mockTap).toHaveBeenCalledTimes(1);
   });
 
-  it.only('should have promise method', done => {
+  it('should have promise method', done => {
     const hook = new AsyncSeriesHook();
     const mockTap = jest.fn();
     hook.tap('somePlugin', mockTap);

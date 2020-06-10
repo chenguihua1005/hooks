@@ -1,51 +1,41 @@
 import { Hook } from './Hook';
 import { HookFactory, HookFactoryOption } from './HookFactory';
-import async from 'async';
 
 class SyncWaterfallFactory extends HookFactory {
   execute = (...arg: any[]) => {
-    let returnResults;
     const { callback, args } = this.getArgsAndCallback(arg);
 
     const tapFns = this.getTapFunctions();
 
-    if (tapFns.length === 0 && typeof callback === 'function') {
-      callback(null, undefined);
+    if (tapFns.length === 0) {
+      if (typeof callback === 'function') {
+        callback(null, undefined);
+      }
       return;
     }
 
-    async.waterfall(
-      tapFns.map((fn, index) => {
-        return (...internalArgs: any) => {
-          const callback = internalArgs[internalArgs.length - 1];
-          const restInternalArgs =
-            index === 0 ? args : internalArgs.slice(0, internalArgs.length - 1);
+    let error: Error | undefined;
 
-          try {
-            const result = fn(...restInternalArgs);
-            callback(null, ...Object.assign(args, [result]));
-          } catch (e) {
-            callback(e);
-          }
-        };
-      }),
-      (error, results) => {
-        returnResults = results;
-        if (typeof callback === 'function') {
-          if (error) {
-            callback(error);
-          } else {
-            callback(null, results);
-          }
-        }
+    for (let i = 0; i < tapFns.length; i++) {
+      try {
+        args[0] = tapFns[i](...args);
+      } catch (e) {
+        error = e;
+        break;
       }
-    );
-
-    if (typeof callback !== 'function') {
-      return returnResults;
     }
 
-    return;
+    if (typeof callback === 'function') {
+      if (error) {
+        callback(error);
+        throw error;
+      }
+      if (args[0]) {
+        callback(null, args[0]);
+        return args[0];
+      }
+    }
+    return args[0];
   };
 }
 

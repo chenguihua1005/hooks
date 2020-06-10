@@ -1,31 +1,31 @@
 import { Hook } from './Hook';
 import { HookFactory, HookFactoryOption } from './HookFactory';
-import async from 'async';
 
+type Results = unknown[];
+type SyncReturnPayload = [Results, Error | undefined];
 class SyncHookFactory extends HookFactory {
   execute = (...arg: any[]) => {
     const { callback, args } = this.getArgsAndCallback(arg);
-    async.allSeries(
-      this.getTapFunctions(),
-      (fn, callback) => {
-        try {
-          fn(...args);
-          callback(null, true);
-        } catch (e) {
-          callback(e);
-        }
-      },
-      (error, results) => {
-        if (typeof callback === 'function') {
-          if (error) {
-            callback(error);
-          }
-          if (results) {
-            callback(null, results);
-          }
-        }
+
+    const tapFns = this.getTapFunctions();
+    let [results, error]: SyncReturnPayload = [[], undefined];
+    for (let i = 0; i < tapFns.length; i++) {
+      try {
+        results.push(tapFns[i](...args));
+      } catch (e) {
+        error = e;
+        break;
       }
-    );
+    }
+
+    if (typeof callback === 'function') {
+      if (error) {
+        callback(error);
+      }
+      if (results) {
+        callback(null, results);
+      }
+    }
   };
 }
 

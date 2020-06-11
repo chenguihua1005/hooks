@@ -126,10 +126,6 @@ export class Hook<T, R> {
     this._tap('sync', options, fn);
   }
 
-  tapAsync(options: string | TapOption, fn: (...args: AsArray<T>) => R) {
-    this._tap('async', options, fn);
-  }
-
   tapPromise(options: string | TapOption, fn: (...args: AsArray<T>) => R) {
     this._tap('promise', options, fn);
   }
@@ -158,8 +154,6 @@ export class Hook<T, R> {
       name: this.name,
       tap: (opt: string | Tap, fn: (...args: AsArray<T>) => R) =>
         this.tap(mergeOptions(opt), fn),
-      tapAsync: (opt: string | Tap, fn: (...args: AsArray<T>) => R) =>
-        this.tapAsync(mergeOptions(opt), fn),
       tapPromise: (opt: string | Tap, fn: (...args: AsArray<T>) => R) =>
         this.tapPromise(mergeOptions(opt), fn),
       intercept: (interceptor: HookInterceptor) => this.intercept(interceptor),

@@ -109,11 +109,6 @@ describe('SyncHook', () => {
     expect(mock0).toHaveBeenLastCalledWith(1, 2);
   });
 
-  it('should throw error on tapAsync', () => {
-    const hook = new SyncHook();
-    expect(() => hook.tapAsync()).toThrow(/tapAsync/);
-  });
-
   it('should throw error on tapPromise', () => {
     const hook = new SyncHook();
     expect(() => hook.tapPromise()).toThrow(/tapPromise/);

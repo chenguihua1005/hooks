@@ -7,6 +7,10 @@ class SyncWaterfallFactory extends HookFactory {
 
     const tapFns = this.getTapFunctions();
 
+    if (args.length < 1) {
+      throw new Error('Waterfall hooks must have at least one argument');
+    }
+
     if (tapFns.length === 0) {
       if (typeof callback === 'function') {
         callback(null, undefined);
@@ -42,10 +46,6 @@ class SyncWaterfallFactory extends HookFactory {
 export class SyncWaterfallHook<T = any, R = any> extends Hook<T, R> {
   compile(options: HookFactoryOption) {
     return new SyncWaterfallFactory(options).execute;
-  }
-
-  tapAsync() {
-    throw new Error('tapAsync is not supported on a SyncHook');
   }
 
   tapPromise() {

@@ -137,11 +137,6 @@ describe('SyncWaterfallHook', () => {
     expect(mockTap).toHaveBeenCalled();
   });
 
-  it('should throw on tapAsync', () => {
-    const hook = new SyncWaterfallHook();
-    expect(() => hook.tapAsync()).toThrow(/tapAsync/);
-  });
-
   it('should throw on tapPromise', () => {
     const hook = new SyncWaterfallHook();
     expect(() => hook.tapPromise()).toThrow(/tapPromise/);

@@ -1,16 +1,25 @@
 import { Hook } from './Hook';
 import { HookFactoryOption, HookFactory } from './HookFactory';
 
-class AsyncSeriesHookFactory extends HookFactory {
+class AsyncSeriesBailHookFactory extends HookFactory {
   execute = async (...arg: unknown[]) => {
     const { args, callback } = this.getArgsAndCallback(arg);
     const tapFns = this.getTapFunctions();
 
-    let results: unknown[] = [];
+    let result: unknown = [];
     let error: Error | undefined;
+
     for (let i = 0; i < tapFns.length; i++) {
       try {
-        results.push(await tapFns[i](...args));
+        result = tapFns[i](...args);
+
+        if (Promise.resolve(result) === result) {
+          result = await result;
+        }
+
+        if (result) {
+          break;
+        }
       } catch (e) {
         error = e;
         break;
@@ -20,14 +29,13 @@ class AsyncSeriesHookFactory extends HookFactory {
     if (typeof callback === 'function') {
       if (error) {
         callback(error);
-        return;
       }
-      callback(null, results);
+      callback(null, result);
     }
   };
 }
 
-export class AsyncSeriesHook<T = any, R = any> extends Hook<T, R> {
+export class AsyncSeriesBailHook<T = any, R = any> extends Hook<T, R> {
   constructor(name?: string) {
     super(name);
 
@@ -35,6 +43,6 @@ export class AsyncSeriesHook<T = any, R = any> extends Hook<T, R> {
     this.call = undefined;
   }
   compile(options: HookFactoryOption) {
-    return new AsyncSeriesHookFactory(options).execute;
+    return new AsyncSeriesBailHookFactory(options).execute;
   }
 }

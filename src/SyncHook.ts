@@ -34,10 +34,6 @@ export class SyncHook<T = any, R = any> extends Hook<T, R> {
     return new SyncHookFactory(options).execute;
   }
 
-  tapAsync() {
-    throw new Error('tapAsync is not supported on a SyncHook');
-  }
-
   tapPromise() {
     throw new Error('tapPromise is not supported on a SyncHook');
   }

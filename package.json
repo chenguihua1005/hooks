@@ -29,9 +29,9 @@
     "singleQuote": true,
     "trailingComma": "es5"
   },
-  "name": "isomorphic-tapable",
+  "name": "@shuvi/hooks",
   "author": "Zheng Yu Tay",
-  "module": "dist/isomorphic-tapable.esm.js",
+  "module": "dist/hooks.esm.js",
   "devDependencies": {
     "@types/async": "^3.2.3",
     "husky": "^4.2.5",

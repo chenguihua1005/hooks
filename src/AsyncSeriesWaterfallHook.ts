@@ -20,7 +20,8 @@ export class AsyncSeriesWaterfallHook<R = any> extends InternalHook<R> {
 
     if (error) {
       callback(error);
+    } else {
+      callback(null, args[0]);
     }
-    callback(null, args[0]);
   };
 }

@@ -18,8 +18,8 @@ export class AsyncSeriesHook<R = any> extends InternalHook<R> {
 
     if (error) {
       callback(error);
-      return;
+    } else {
+      callback(null, results);
     }
-    callback(null, results);
   };
 }

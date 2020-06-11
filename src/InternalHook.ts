@@ -54,23 +54,18 @@ export abstract class InternalHook<R> {
     taps[index] = item;
   }
 
-  private _createCall() {
+  promise(...args: any[]) {
     const fn = this.execute;
 
-    return (...args: any[]) =>
-      new Promise((resolve, reject) => {
-        fn(...args, (err: unknown, results: unknown) => {
-          if (err) {
-            reject(err);
-          } else {
-            resolve(results);
-          }
-        });
+    return new Promise((resolve, reject) => {
+      fn(...args, (err: unknown, results: unknown) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(results);
+        }
       });
-  }
-
-  promise(...args: any[]) {
-    return this._createCall()(...args);
+    });
   }
 
   tapPromise(options: string | TapOption, fn: (...args: any[]) => R) {

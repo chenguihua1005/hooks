@@ -18,11 +18,9 @@ export class AsyncSeriesWaterfallHook<R = any> extends InternalHook<R> {
       }
     }
 
-    if (typeof callback === 'function') {
-      if (error) {
-        callback(error);
-      }
-      callback(null, args[0]);
+    if (error) {
+      callback(error);
     }
+    callback(null, args[0]);
   };
 }

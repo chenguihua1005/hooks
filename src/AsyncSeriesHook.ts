@@ -16,12 +16,10 @@ export class AsyncSeriesHook<R = any> extends InternalHook<R> {
       }
     }
 
-    if (typeof callback === 'function') {
-      if (error) {
-        callback(error);
-        return;
-      }
-      callback(null, results);
+    if (error) {
+      callback(error);
+      return;
     }
+    callback(null, results);
   };
 }

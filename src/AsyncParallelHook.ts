@@ -7,14 +7,10 @@ export class AsyncParallelHook<R = any> extends InternalHook<R> {
 
     try {
       const results = await Promise.all(tapFns.map(fn => fn(...args)));
-      if (typeof callback === 'function') {
-        callback(null, results);
-      }
+      callback(null, results);
     } catch (error) {
-      if (typeof callback === 'function') {
-        if (error) {
-          callback(error);
-        }
+      if (error) {
+        callback(error);
       }
     }
   };

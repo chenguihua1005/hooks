@@ -1,64 +1,86 @@
-import { SyncHook } from '../src/SyncHook';
+import { Hooks } from '../src/Hook';
 
-describe('Hook', () => {
-  it('should allow to insert hooks before others and in stages', () => {
-    const hook = new SyncHook();
-
-    const calls: string[] = [];
-    hook.tap('A', () => calls.push('A'));
-    hook.tap(
-      {
-        name: 'B',
-        before: 'A',
+describe('hooks', () => {
+  test('should called in serial: no initialValue', async () => {
+    const hook = new Hooks();
+    const arr: any[] = [];
+    hook.addHook('foo', {
+      name: 'a',
+      fn(val: any) {
+        arr.push('a', val);
+        return val;
       },
-      () => calls.push('B')
-    );
-
-    calls.length = 0;
-    hook.call();
-    expect(calls).toEqual(['B', 'A']);
-
-    hook.tap(
-      {
-        name: 'C',
-        before: ['A', 'B'],
+    });
+    hook.addHook('foo', {
+      name: 'b',
+      fn(val: any) {
+        arr.push('b', val);
+        return val;
       },
-      () => calls.push('C')
-    );
-
-    calls.length = 0;
-    hook.call();
-    expect(calls).toEqual(['C', 'B', 'A']);
-
-    hook.tap(
-      {
-        name: 'D',
-        before: 'B',
+    });
+    hook.addHook('foo', {
+      name: 'c',
+      fn(val: any) {
+        arr.push('c', val);
+        return val;
       },
-      () => calls.push('D')
-    );
+    });
 
-    calls.length = 0;
-    hook.call();
-    expect(calls).toEqual(['C', 'D', 'B', 'A']);
+    await hook.callHook('foo', 'bar');
+    expect(arr).toEqual(['a', 'bar', 'b', 'bar', 'c', 'bar']);
+  });
 
-    hook.tap(
-      {
-        name: 'E',
-        stage: -5,
+  test('should called in serial: has initialValue', async () => {
+    const hook = new Hooks();
+    hook.addHook('foo', {
+      name: 'a',
+      fn(memo: any, p1: any) {
+        memo.push('a', p1);
+        return memo;
       },
-      () => calls.push('E')
-    );
-    hook.tap(
-      {
-        name: 'F',
-        stage: -3,
+    });
+    hook.addHook('foo', {
+      name: 'b',
+      fn(memo: any, p1: any) {
+        memo.push('b', p1);
+        return memo;
       },
-      () => calls.push('F')
-    );
+    });
+    hook.addHook('foo', {
+      name: 'c',
+      fn(memo: any, p1: any) {
+        memo.push('c', p1);
+        return memo;
+      },
+    });
 
-    calls.length = 0;
-    hook.call();
-    expect(calls).toEqual(['E', 'F', 'C', 'D', 'B', 'A']);
+    const arr: any[] = [];
+    await hook.callHook({ name: 'foo', initialValue: arr }, 'bar');
+    expect(arr).toEqual(['a', 'bar', 'b', 'bar', 'c', 'bar']);
+  });
+
+  test('should called in parallel', async () => {
+    const hook = new Hooks();
+    hook.addHook('foo', {
+      name: 'a',
+      fn(p1: any) {
+        return 'a' + p1;
+      },
+    });
+    hook.addHook('foo', {
+      name: 'b',
+      fn(p1: any) {
+        return 'b' + p1;
+      },
+    });
+    hook.addHook('foo', {
+      name: 'c',
+      fn(p1: any) {
+        return 'c' + p1;
+      },
+    });
+
+    const res = await hook.callHook({ name: 'foo', parallel: true }, '1');
+    expect(res).toEqual(['a1', 'b1', 'c1']);
   });
 });

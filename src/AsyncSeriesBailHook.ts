@@ -1,15 +1,24 @@
 import { InternalHook } from './InternalHook';
 
-export class AsyncSeriesHook<R = any> extends InternalHook<R> {
+export class AsyncSeriesBailHook<R = any> extends InternalHook<R> {
   execute = async (...arg: unknown[]) => {
     const { args, callback } = this.getArgsAndCallback(arg);
     const tapFns = this.getTapFunctions();
 
-    let results: unknown[] = [];
+    let result: unknown = [];
     let error: Error | undefined;
+
     for (let i = 0; i < tapFns.length; i++) {
       try {
-        results.push(await tapFns[i](...args));
+        result = tapFns[i](...args);
+
+        if (Promise.resolve(result) === result) {
+          result = await result;
+        }
+
+        if (result) {
+          break;
+        }
       } catch (e) {
         error = e;
         break;
@@ -19,7 +28,7 @@ export class AsyncSeriesHook<R = any> extends InternalHook<R> {
     if (error) {
       callback(error);
     } else {
-      callback(null, results);
+      callback(null, result);
     }
   };
 }

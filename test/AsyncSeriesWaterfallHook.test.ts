@@ -1,19 +1,12 @@
 import { AsyncSeriesWaterfallHook } from '../src/AsyncSeriesWaterfallHook';
 
 describe('AsyncSeriesWaterfallHook', () => {
-  it('should not have call method', () => {
-    const hook = new AsyncSeriesWaterfallHook();
-    expect(hook.call).toEqual(undefined);
-    expect(typeof hook.callAsync).toEqual('function');
-    expect(typeof hook.promise).toEqual('function');
-  });
-
   it('should have tap method', async () => {
     const hook = new AsyncSeriesWaterfallHook();
-    hook.tap('somePlugin', arg => {
-      return arg + 1;
+    hook.tapPromise('somePlugin', arg => {
+      return Promise.resolve(arg + 1);
     });
-    const result = await hook.callAsync(42);
+    const result = await hook.promise(42);
     expect(result).toBe(43);
   });
 
@@ -33,9 +26,6 @@ describe('AsyncSeriesWaterfallHook', () => {
     });
     const result = await hook.promise(43);
     expect(result).toBe(46);
-    await hook.callAsync(43, (_: any, total: number) => {
-      expect(total).toBe(46);
-    });
   });
 
   it('should throw error promise rejection', async done => {
@@ -57,9 +47,6 @@ describe('AsyncSeriesWaterfallHook', () => {
     hook.promise(43).catch((e: Error) => {
       expect(e.message).toBe('something wrong');
       done();
-    });
-    hook.callAsync(43, (err: Error) => {
-      expect(err.message).toBe('something wrong');
     });
   });
 });

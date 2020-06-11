@@ -1,7 +1,6 @@
-import { Hook } from './Hook';
-import { HookFactoryOption, HookFactory } from './HookFactory';
+import { InternalHook } from './InternalHook';
 
-class AsyncSeriesBailHookFactory extends HookFactory {
+export class AsyncSeriesBailHook<R = any> extends InternalHook<R> {
   execute = async (...arg: unknown[]) => {
     const { args, callback } = this.getArgsAndCallback(arg);
     const tapFns = this.getTapFunctions();
@@ -26,23 +25,10 @@ class AsyncSeriesBailHookFactory extends HookFactory {
       }
     }
 
-    if (typeof callback === 'function') {
-      if (error) {
-        callback(error);
-      }
+    if (error) {
+      callback(error);
+    } else {
       callback(null, result);
     }
   };
-}
-
-export class AsyncSeriesBailHook<T = any, R = any> extends Hook<T, R> {
-  constructor(name?: string) {
-    super(name);
-
-    // @ts-ignore
-    this.call = undefined;
-  }
-  compile(options: HookFactoryOption) {
-    return new AsyncSeriesBailHookFactory(options).execute;
-  }
 }

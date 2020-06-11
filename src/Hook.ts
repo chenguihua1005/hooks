@@ -1,177 +1,137 @@
-import { AsArray, Tap, TapOption, HookInterceptor, CallType } from './types';
-import { HookFactoryOption } from './HookFactory';
+import { AsyncParallelHook } from './AsyncParallelHook';
+import { AsyncSeriesHook } from './AsyncSeriesHook';
+import { AsyncSeriesBailHook } from './AsyncSeriesBailHook';
+import { AsyncSeriesWaterfallHook } from './AsyncSeriesWaterfallHook';
 
-export class Hook<T, R> {
-  name: string | undefined;
-  taps: Tap[] = [];
-  interceptors: HookInterceptor[] = [];
+import { IHookOpts, ICallHookOpts } from './types';
 
-  constructor(name?: string) {
-    this.name = name;
-  }
-
-  compile(_: HookFactoryOption): Function {
-    throw new Error('Must be override');
-  }
-
-  private _insert(item: Tap) {
-    let before;
-    if (typeof item.before === 'string') {
-      before = new Set([item.before]);
-    } else if (Array.isArray(item.before)) {
-      before = new Set(item.before);
-    }
-
-    let stage = 0;
-    if (typeof item.stage === 'number') {
-      stage = item.stage;
-    }
-
-    const { taps } = this;
-    let index = taps.length;
-
-    while (index > 0) {
-      index--;
-
-      const tap = taps[index];
-      taps[index + 1] = tap;
-      const tapStage = tap.stage || 0;
-
-      if (before) {
-        if (before.has(tap.name)) {
-          before.delete(tap.name);
-          continue;
-        }
-        if (before.size > 0) {
-          continue;
-        }
+async function callSerailWithInitialValue<R = unknown>(
+  hooks: IHookOpts[],
+  args: any[],
+  initialValue: R
+): Promise<R> {
+  const thook = new AsyncSeriesWaterfallHook();
+  for (const hook of hooks) {
+    thook.tapPromise(
+      {
+        name: hook.name,
+        stage: hook.stage || 0,
+        // @ts-ignore
+        before: hook.before,
+      },
+      async (memo: any) => {
+        return await hook.fn(memo, ...args);
       }
+    );
+  }
+  return (await thook.promise(initialValue)) as any;
+}
 
-      if (tapStage > stage) {
-        continue;
+async function callSerail<R = unknown>(
+  hooks: IHookOpts[],
+  args: any[],
+  bail: boolean
+): Promise<R> {
+  const thook = bail ? new AsyncSeriesBailHook() : new AsyncSeriesHook();
+  for (const hook of hooks) {
+    thook.tapPromise(
+      {
+        name: hook.name,
+        stage: hook.stage || 0,
+        // @ts-ignore
+        before: hook.before,
+      },
+      async () => {
+        return await hook.fn(...args);
       }
+    );
+  }
+  return (await thook.promise()) as any;
+}
 
-      index++;
-      break;
+async function callParallel<R = unknown>(
+  hooks: IHookOpts[],
+  args: any[]
+): Promise<R> {
+  const thook = new AsyncParallelHook();
+  const memo: any[] = [];
+  for (const hook of hooks) {
+    thook.tapPromise(
+      {
+        name: hook.name,
+        stage: hook.stage || 0,
+        // @ts-ignore
+        before: hook.before,
+      },
+      async () => {
+        memo.push(await hook.fn(...args));
+      }
+    );
+  }
+  await thook.promise();
+  return (memo as any) as R;
+}
+
+export class Hooks {
+  private _hooks = new Map<string, IHookOpts[]>();
+
+  constructor() {}
+
+  addHook(name: string, hook: IHookOpts<any, any[]>) {
+    let hooks = this._hooks.get(name);
+    if (!hooks) {
+      hooks = [];
+      this._hooks.set(name, hooks);
     }
 
-    taps[index] = item;
+    hooks.push(hook);
   }
 
-  private _createCall(type: CallType) {
-    const fn = this.compile({
-      taps: this.taps,
-      interceptors: this.interceptors,
-      type: type,
-    });
-    switch (type) {
-      case 'sync': {
-        return fn;
-      }
-      case 'async': {
-        return fn;
-      }
-      case 'promise': {
-        return (...args: any[]) =>
-          new Promise((resolve, reject) => {
-            fn(...args, (err: unknown, results: unknown) => {
-              if (err) {
-                reject(err);
-              } else {
-                resolve(results);
-              }
-            });
-          });
-      }
-    }
-  }
-
-  call(...args: any[]) {
-    return this._createCall('sync')(...args);
-  }
-
-  callAsync(...args: any[]) {
-    return this._createCall('async')(...args);
-  }
-
-  promise(...args: any[]) {
-    return this._createCall('promise')(...args);
-  }
-
-  private _tap(
-    type: CallType,
-    options: string | TapOption,
-    fn: (...args: AsArray<T>) => R
-  ) {
-    let tap = options as Tap;
-    if (typeof options === 'string') {
-      tap = {
-        name: options,
-        fn,
-        type,
-        context: false,
-      };
-    } else if (typeof options !== 'object' || options === null) {
-      throw new Error('Invalid tap options');
-    }
-    if (typeof tap.name !== 'string' || tap.name === '') {
-      throw new Error('Missing name for tap');
-    }
-    tap = Object.assign({ type, fn }, tap);
-    tap = this._runRegisterInterceptors(tap);
-    this._insert(tap);
-  }
-
-  tap(options: string | TapOption, fn: (...args: AsArray<T>) => R) {
-    this._tap('sync', options, fn);
-  }
-
-  tapPromise(options: string | TapOption, fn: (...args: AsArray<T>) => R) {
-    this._tap('promise', options, fn);
-  }
-
-  private _runRegisterInterceptors(options: Tap) {
-    for (const interceptor of this.interceptors) {
-      if (interceptor.register) {
-        const newOptions = interceptor.register(options);
-        if (newOptions !== undefined) {
-          options = newOptions;
-        }
-      }
-    }
-    return options;
-  }
-
-  withOptions(options: Partial<TapOption>) {
-    const mergeOptions = (opt: string | TapOption): TapOption =>
-      Object.assign(
-        {},
-        options,
-        typeof opt === 'string' ? { name: opt, context: false } : opt
-      );
-
-    return {
-      name: this.name,
-      tap: (opt: string | Tap, fn: (...args: AsArray<T>) => R) =>
-        this.tap(mergeOptions(opt), fn),
-      tapPromise: (opt: string | Tap, fn: (...args: AsArray<T>) => R) =>
-        this.tapPromise(mergeOptions(opt), fn),
-      intercept: (interceptor: HookInterceptor) => this.intercept(interceptor),
-      isUsed: () => this.isUsed(),
-      withOptions: (opt: string | Tap) => this.withOptions(mergeOptions(opt)),
+  async callHook<R = unknown>(name: string, ...args: any[]): Promise<R>;
+  async callHook<R = unknown>(
+    options: ICallHookOpts,
+    ...args: any[]
+  ): Promise<R>;
+  async callHook<R = unknown>(
+    options: string | ICallHookOpts,
+    ...args: any[]
+  ): Promise<R> {
+    const defaultOpts = {
+      bail: false,
+      parallel: false,
+      initialValue: undefined,
     };
-  }
+    let opts: Required<ICallHookOpts>;
+    if (typeof options === 'object') {
+      opts = {
+        ...defaultOpts,
+        ...options,
+      };
+    } else {
+      opts = {
+        ...defaultOpts,
+        name: options,
+      };
+    }
 
-  isUsed() {
-    return this.taps.length > 0 || this.interceptors.length > 0;
-  }
+    const hasInitialValue = typeof opts.initialValue !== 'undefined';
 
-  intercept(interceptor: HookInterceptor) {
-    this.interceptors.push(Object.assign({}, interceptor));
-    if (interceptor.register) {
-      for (let i = 0; i < this.taps.length; i++) {
-        this.taps[i] = interceptor.register(this.taps[i]);
-      }
+    const hooks = this._hooks.get(opts.name);
+    if (!hooks || hooks.length <= 0) {
+      // @ts-ignore no return value
+      return hasInitialValue ? opts.initialValue : [];
+    }
+
+    if (opts.parallel) {
+      return await callParallel<R>(hooks, args);
+    } else if (hasInitialValue) {
+      return await callSerailWithInitialValue<R>(
+        hooks,
+        args,
+        opts.initialValue as any
+      );
+    } else {
+      return await callSerail<R>(hooks, args, opts.bail);
     }
   }
 }

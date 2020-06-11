@@ -1,1 +1,1 @@
-export { SyncHook } from './SyncHook';
+export { Hooks } from './Hook';

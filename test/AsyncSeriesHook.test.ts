@@ -1,16 +1,26 @@
-import { AsyncSeriesHook } from '../src/AsyncSeriesHook';
+import { executeAsyncSeriesHook } from '../src/AsyncSeriesHook';
+import { IHookOpts } from '../src/types';
+import { runHook } from './hookTestHelper';
 describe('AsyncSeriesHook', () => {
   it('should have tap, tapPromise method', async () => {
-    const hook = new AsyncSeriesHook();
     const mockTap = jest.fn();
     const mockPromiseTap = jest.fn().mockReturnValue('promise');
-    hook.tapPromise('somePlugin', mockTap);
-    hook.tapPromise('promise', () => {
-      return new Promise(resolve =>
-        setTimeout(() => resolve(mockPromiseTap()), 100)
-      );
-    });
-    const promise = hook.promise();
+    const hooks: IHookOpts[] = [
+      {
+        name: 'somePlugin',
+        fn: mockTap,
+      },
+      {
+        name: 'promise',
+        fn: () => {
+          return new Promise(resolve =>
+            setTimeout(() => resolve(mockPromiseTap()), 100)
+          );
+        },
+      },
+    ];
+
+    const promise = runHook(hooks, executeAsyncSeriesHook);
 
     expect(mockTap).toHaveBeenCalledTimes(1);
     expect(mockPromiseTap).toBeCalledTimes(0);
@@ -21,19 +31,25 @@ describe('AsyncSeriesHook', () => {
   });
 
   it('should throw the same error as tap function', async () => {
-    const hook = new AsyncSeriesHook();
     const mockTap = jest.fn();
-    hook.tapPromise('somePlugin', mockTap);
+    const hooks: IHookOpts[] = [
+      {
+        name: 'somePlugin',
+        fn: mockTap,
+      },
+      {
+        name: 'promise',
+        fn: async param => {
+          expect(param).toBe(1);
 
-    hook.tapPromise('promise', async param => {
-      expect(param).toBe(1);
-
-      await new Promise(resolve => setTimeout(resolve, 200));
-      throw new Error('error');
-    });
+          await new Promise(resolve => setTimeout(resolve, 200));
+          throw new Error('error');
+        },
+      },
+    ];
 
     try {
-      await hook.promise(1);
+      await runHook(hooks, executeAsyncSeriesHook, 1);
     } catch (e) {
       expect(e.message).toBe('error');
     }

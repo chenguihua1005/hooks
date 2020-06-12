@@ -1,30 +1,26 @@
-import { AsyncParallelHook } from './AsyncParallelHook';
-import { AsyncSeriesHook } from './AsyncSeriesHook';
-import { AsyncSeriesBailHook } from './AsyncSeriesBailHook';
-import { AsyncSeriesWaterfallHook } from './AsyncSeriesWaterfallHook';
+import { executeAsyncParallelHook } from './AsyncParallelHook';
+import { executeAsyncSeriesHook } from './AsyncSeriesHook';
+import { executeAsyncSeriesBailHook } from './AsyncSeriesBailHook';
+import { executeAsyncSeriesWaterfallHook } from './AsyncSeriesWaterfallHook';
 
 import { IHookOpts, ICallHookOpts } from './types';
+import { promisify, sortHookFns } from './utils';
 
 async function callSerailWithInitialValue<R = unknown>(
   hooks: IHookOpts[],
   args: any[],
   initialValue: R
 ): Promise<R> {
-  const thook = new AsyncSeriesWaterfallHook();
-  for (const hook of hooks) {
-    thook.tapPromise(
-      {
-        name: hook.name,
-        stage: hook.stage || 0,
-        // @ts-ignore
-        before: hook.before,
-      },
-      async (memo: any) => {
-        return await hook.fn(memo, ...args);
-      }
-    );
-  }
-  return (await thook.promise(initialValue)) as any;
+  const sortedHookFns = sortHookFns(hooks);
+
+  return promisify(
+    executeAsyncSeriesWaterfallHook.bind(
+      null,
+      sortedHookFns,
+      initialValue,
+      ...args
+    )
+  );
 }
 
 async function callSerail<R = unknown>(
@@ -32,44 +28,20 @@ async function callSerail<R = unknown>(
   args: any[],
   bail: boolean
 ): Promise<R> {
-  const thook = bail ? new AsyncSeriesBailHook() : new AsyncSeriesHook();
-  for (const hook of hooks) {
-    thook.tapPromise(
-      {
-        name: hook.name,
-        stage: hook.stage || 0,
-        // @ts-ignore
-        before: hook.before,
-      },
-      async () => {
-        return await hook.fn(...args);
-      }
-    );
-  }
-  return (await thook.promise()) as any;
+  const thookFn = bail ? executeAsyncSeriesBailHook : executeAsyncSeriesHook;
+  const sortedHookFns = sortHookFns(hooks);
+  return promisify(thookFn.bind(null, sortedHookFns, ...args));
 }
 
 async function callParallel<R = unknown>(
   hooks: IHookOpts[],
   args: any[]
 ): Promise<R> {
-  const thook = new AsyncParallelHook();
-  const memo: any[] = [];
-  for (const hook of hooks) {
-    thook.tapPromise(
-      {
-        name: hook.name,
-        stage: hook.stage || 0,
-        // @ts-ignore
-        before: hook.before,
-      },
-      async () => {
-        memo.push(await hook.fn(...args));
-      }
-    );
-  }
-  await thook.promise();
-  return (memo as any) as R;
+  const sortedHookFns = sortHookFns(hooks);
+
+  return await promisify(
+    executeAsyncParallelHook.bind(null, sortedHookFns, ...args)
+  );
 }
 
 export class Hooks {

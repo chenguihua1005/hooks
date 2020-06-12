@@ -1,12 +1,3 @@
-export interface Tap<F extends Function = Function> {
-  name: string;
-  fn: F;
-  stage?: number;
-  before?: string | Array<string>;
-}
-
-export type TapOption = Omit<Tap, 'type' | 'fn'>;
-
 export interface IHookOpts<InitValue = null, Args extends any[] = any[]> {
   name: string;
   fn: InitValue extends null

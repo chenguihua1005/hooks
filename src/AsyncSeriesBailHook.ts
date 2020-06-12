@@ -1,34 +1,21 @@
-import { InternalHook } from './InternalHook';
+import { IHookOpts } from './types';
 
-export class AsyncSeriesBailHook<R = any> extends InternalHook<R> {
-  execute = async (...arg: unknown[]) => {
-    const { args, callback } = this.getArgsAndCallback(arg);
-    const tapFns = this.getTapFunctions();
+export const executeAsyncSeriesBailHook = async (
+  tapFns: IHookOpts['fn'][],
+  ...args: any[]
+) => {
+  let result: unknown = [];
 
-    let result: unknown = [];
-    let error: Error | undefined;
+  for (let i = 0; i < tapFns.length; i++) {
+    result = tapFns[i](...args);
 
-    for (let i = 0; i < tapFns.length; i++) {
-      try {
-        result = tapFns[i](...args);
-
-        if (Promise.resolve(result) === result) {
-          result = await result;
-        }
-
-        if (result) {
-          break;
-        }
-      } catch (e) {
-        error = e;
-        break;
-      }
+    if (Promise.resolve(result) === result) {
+      result = await result;
     }
 
-    if (error) {
-      callback(error);
-    } else {
-      callback(null, result);
+    if (result) {
+      break;
     }
-  };
-}
+  }
+  return result;
+};

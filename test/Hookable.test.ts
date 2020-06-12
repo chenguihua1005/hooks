@@ -1,8 +1,8 @@
-import { Hooks } from '../src/Hook';
+import { Hookable } from '../src/Hookable';
 
-describe('hooks', () => {
+describe('Hookable', () => {
   test('should called in serial: no initialValue', async () => {
-    const hook = new Hooks();
+    const hook = new Hookable();
     const arr: any[] = [];
     hook.addHook('foo', {
       name: 'a',
@@ -31,7 +31,7 @@ describe('hooks', () => {
   });
 
   test('should called in serial: has initialValue', async () => {
-    const hook = new Hooks();
+    const hook = new Hookable();
     hook.addHook('foo', {
       name: 'a',
       fn(memo: any, p1: any) {
@@ -60,7 +60,7 @@ describe('hooks', () => {
   });
 
   test('should called in parallel', async () => {
-    const hook = new Hooks();
+    const hook = new Hookable();
     hook.addHook('foo', {
       name: 'a',
       fn(p1: any) {

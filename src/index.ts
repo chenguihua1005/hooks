@@ -1,1 +1,2 @@
-export { Hooks } from './Hook';
+export { Hookable } from './Hookable';
+export * from './types';

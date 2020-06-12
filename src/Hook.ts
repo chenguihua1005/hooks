@@ -3,7 +3,7 @@ import { executeAsyncSeriesHook } from './AsyncSeriesHook';
 import { executeAsyncSeriesBailHook } from './AsyncSeriesBailHook';
 import { executeAsyncSeriesWaterfallHook } from './AsyncSeriesWaterfallHook';
 
-import { IHookOpts, ICallHookOpts } from './types';
+import { IHookOpts, ICallHookOpts, IHookable, IHookConfig } from './types';
 import { insertHook, getHooksFunctions } from './utils';
 
 async function callSerailWithInitialValue<R = unknown>(
@@ -35,7 +35,7 @@ async function callParallel<R = unknown>(
   return (await (executeAsyncParallelHook(fns, ...args) as any)) as Promise<R>;
 }
 
-export class Hooks {
+export class Hooks implements IHookable {
   private _hooks = new Map<string, IHookOpts[]>();
 
   constructor() {}
@@ -91,10 +91,31 @@ export class Hooks {
       return await callSerailWithInitialValue<R>(
         hooks,
         args,
-        opts.initialValue as any
+        opts.initialValue as R
       );
     } else {
       return await callSerail<R>(hooks, args, opts.bail);
     }
+  }
+
+  on<Config extends IHookConfig>(
+    event: Config['name'],
+    listener: (...args: Config['args']) => void
+  ) {
+    this.addHook(event, { name: 'listener', fn: listener });
+  }
+
+  tap<Config extends IHookConfig>(
+    hook: Config['name'],
+    opts: IHookOpts<Config['initialValue'], Config['args']>
+  ) {
+    this.addHook(hook, opts);
+  }
+
+  emitEvent<Config extends IHookConfig>(
+    name: Config['name'],
+    ...args: Config['args']
+  ): void {
+    this.callHook({ name, parallel: true }, ...args);
   }
 }

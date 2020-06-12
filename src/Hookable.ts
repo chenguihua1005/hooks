@@ -35,7 +35,7 @@ async function callParallel<R = unknown>(
   return (await (executeAsyncParallelHook(fns, ...args) as any)) as Promise<R>;
 }
 
-export class Hooks implements IHookable {
+export class Hookable implements IHookable {
   private _hooks = new Map<string, IHookOpts[]>();
 
   constructor() {}

@@ -4,23 +4,16 @@ import { executeAsyncSeriesBailHook } from './AsyncSeriesBailHook';
 import { executeAsyncSeriesWaterfallHook } from './AsyncSeriesWaterfallHook';
 
 import { IHookOpts, ICallHookOpts } from './types';
-import { promisify, sortHookFns } from './utils';
+import { insertHook, getHooksFunctions } from './utils';
 
 async function callSerailWithInitialValue<R = unknown>(
   hooks: IHookOpts[],
   args: any[],
   initialValue: R
 ): Promise<R> {
-  const sortedHookFns = sortHookFns(hooks);
+  const fns = getHooksFunctions(hooks);
 
-  return promisify(
-    executeAsyncSeriesWaterfallHook.bind(
-      null,
-      sortedHookFns,
-      initialValue,
-      ...args
-    )
-  );
+  return executeAsyncSeriesWaterfallHook(fns, initialValue, ...args);
 }
 
 async function callSerail<R = unknown>(
@@ -29,19 +22,17 @@ async function callSerail<R = unknown>(
   bail: boolean
 ): Promise<R> {
   const thookFn = bail ? executeAsyncSeriesBailHook : executeAsyncSeriesHook;
-  const sortedHookFns = sortHookFns(hooks);
-  return promisify(thookFn.bind(null, sortedHookFns, ...args));
+  const fns = getHooksFunctions(hooks);
+  return thookFn(fns, ...args) as Promise<R>;
 }
 
 async function callParallel<R = unknown>(
   hooks: IHookOpts[],
   args: any[]
 ): Promise<R> {
-  const sortedHookFns = sortHookFns(hooks);
+  const fns = getHooksFunctions(hooks);
 
-  return await promisify(
-    executeAsyncParallelHook.bind(null, sortedHookFns, ...args)
-  );
+  return (await (executeAsyncParallelHook(fns, ...args) as any)) as Promise<R>;
 }
 
 export class Hooks {
@@ -56,7 +47,7 @@ export class Hooks {
       this._hooks.set(name, hooks);
     }
 
-    hooks.push(hook);
+    insertHook(hooks, hook);
   }
 
   async callHook<R = unknown>(name: string, ...args: any[]): Promise<R>;

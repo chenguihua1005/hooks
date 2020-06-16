@@ -12,9 +12,11 @@ export interface IHookOpts<
   Args extends any[] = any[]
 > {
   name: string;
-  fn: InitValue extends NoInitValue
+  fn: (InitValue extends NoInitValue
     ? (...args: Args) => void | Promise<void>
-    : (init: InitValue, ...args: Args) => InitValue | Promise<InitValue>;
+    : (init: InitValue, ...args: Args) => InitValue | Promise<InitValue>) & {
+    hookName?: string;
+  };
   before?: string;
   stage?: number;
 }

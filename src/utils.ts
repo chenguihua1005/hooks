@@ -1,7 +1,10 @@
 import { IHookOpts } from 'types';
 
 export const getHooksFunctions = (hooks: IHookOpts[]) => {
-  return hooks.map(({ fn }) => fn);
+  return hooks.map(({ fn, name }) => {
+    fn.hookName = name;
+    return fn;
+  });
 };
 
 // mutable sort

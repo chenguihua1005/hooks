@@ -4,7 +4,7 @@ import { executeAsyncSeriesBailHook } from './AsyncSeriesBailHook';
 import { executeAsyncSeriesWaterfallHook } from './AsyncSeriesWaterfallHook';
 
 import { IHookOpts, ICallHookOpts, IHookable, IHookConfig } from './types';
-import { insertHook, getHooksFunctions } from './utils';
+import { insertHook, getHooksFunctions, removeHook } from './utils';
 
 async function callSerailWithInitialValue<R = unknown>(
   hooks: IHookOpts[],
@@ -49,6 +49,10 @@ export class Hookable implements IHookable {
     }
 
     insertHook(hooks, hook);
+
+    return () => {
+      removeHook(hooks!, hook);
+    };
   }
 
   callHook<Config extends IHookConfig = IHookConfig>(

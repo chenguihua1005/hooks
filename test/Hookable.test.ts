@@ -83,4 +83,34 @@ describe('Hookable', () => {
     const res = await hook.callHook({ name: 'foo', parallel: true }, '1');
     expect(res).toEqual(['a1', 'b1', 'c1']);
   });
+
+  test('should successfully remove a hook', async () => {
+    const hook = new Hookable();
+    hook.tap('foo', {
+      name: 'a',
+      fn(p1: any) {
+        return 'a' + p1;
+      },
+    });
+    hook.tap('foo', {
+      name: 'b',
+      fn(p1: any) {
+        return 'b' + p1;
+      },
+    });
+    const removeHook = hook.tap('foo', {
+      name: 'c',
+      fn(p1: any) {
+        return 'c' + p1;
+      },
+    });
+
+    let res = await hook.callHook({ name: 'foo', parallel: true }, '1');
+    expect(res).toEqual(['a1', 'b1', 'c1']);
+
+    removeHook();
+
+    res = await hook.callHook({ name: 'foo', parallel: true }, '1');
+    expect(res).toEqual(['a1', 'b1']);
+  });
 });

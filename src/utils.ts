@@ -46,3 +46,11 @@ export const insertHook = (hooks: IHookOpts[], hook: IHookOpts) => {
 
   return hooks;
 };
+
+// mutable way
+export const removeHook = (hooks: IHookOpts[], hookToRemove: IHookOpts) => {
+  const indexToRemove = hooks.findIndex(hook => hook === hookToRemove);
+  if (indexToRemove >= 0) {
+    hooks.splice(indexToRemove, 1);
+  }
+};

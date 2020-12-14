@@ -114,6 +114,6 @@ export class Hookable implements IHookable {
     name: Config['name'],
     ...args: Config['args']
   ) {
-    return this.callHook({ name, parallel: true }, ...args);
+    this.callHook({ name, parallel: true }, ...args);
   }
 }
